@@ -20,8 +20,8 @@ else:
     st.error("Missing Gemini API Key! Please add GEMINI_API_KEY to your Streamlit App Secrets.")
     st.stop()
 
-# Active standard model
-MODEL_NAME = "gemini-2.5-flash"
+# Updated 3.x series Flash model
+MODEL_NAME = "gemini-3.7-flash"
 
 def extract_json(text):
     match = re.search(r'\{.*\}', text, re.DOTALL)
