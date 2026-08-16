@@ -1,10 +1,9 @@
 import streamlit as st
 import json
 import re
-import io
-import base64
 from PIL import Image
 from google import genai
+from google.genai import types
 
 st.set_page_config(page_title="NutriTrack AI Universal", page_icon="🥗", layout="centered")
 
@@ -17,8 +16,8 @@ if "logged_foods" not in st.session_state:
 # API Key
 API_KEY = "AQ.Ab8RN6Kd-R0YXF4G5_CeeFY4bwHxPPlElDFswBX-Okgoe6-8_A"
 
-# Updated to current active model string
-MODEL_NAME = "gemini-3.6-flash"
+# Active standard model
+MODEL_NAME = "gemini-2.5-flash"
 
 def extract_json(text):
     match = re.search(r'\{.*\}', text, re.DOTALL)
@@ -48,12 +47,15 @@ with tab1:
                     {{"food_name": "string", "calories": float, "protein_g": float, "carbs_g": float, "fat_g": float, "sugar_g": float}}
                     """
                     
-                    interaction = client.interactions.create(
+                    response = client.models.generate_content(
                         model=MODEL_NAME,
-                        input=prompt
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        )
                     )
                     
-                    data = extract_json(interaction.output_text)
+                    data = extract_json(response.text)
 
                     st.success(f"Found: **{data['food_name']}** ({portion_oz} oz)")
                     st.write(f"**Nutrition:** {data['calories']} kcal | {data['protein_g']}g P | {data['carbs_g']}g C | {data['fat_g']}g F | {data['sugar_g']}g S")
@@ -86,30 +88,21 @@ with tab2:
             try:
                 with st.spinner("Identifying food and estimating macros..."):
                     client = genai.Client(api_key=API_KEY)
-                    
-                    buffered = io.BytesIO()
-                    image.convert("RGB").save(buffered, format="JPEG")
-                    image_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                    
                     prompt = """
                     Analyze this image. Identify the meal/food item and estimate its portion size in ounces, total calories, protein (g), carbs (g), fat (g), and sugar (g).
                     Return ONLY a JSON object with these keys:
                     {"food_name": "string", "portion_oz": float, "calories": float, "protein_g": float, "carbs_g": float, "fat_g": float, "sugar_g": float}
                     """
                     
-                    interaction = client.interactions.create(
+                    response = client.models.generate_content(
                         model=MODEL_NAME,
-                        input=[
-                            {"type": "text", "text": prompt},
-                            {
-                                "type": "image",
-                                "mime_type": "image/jpeg",
-                                "data": image_b64
-                            }
-                        ]
+                        contents=[image, prompt],
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        )
                     )
                     
-                    data = extract_json(interaction.output_text)
+                    data = extract_json(response.text)
                     
                     st.success(f"Identified: **{data['food_name']}** (~{data['portion_oz']} oz)")
                     st.write(f"**Nutrition:** {data['calories']} kcal | {data['protein_g']}g P | {data['carbs_g']}g C | {data['fat_g']}g F | {data['sugar_g']}g S")
