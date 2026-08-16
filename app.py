@@ -13,8 +13,12 @@ st.write("Universal food search & photo macro tracker powered by live web data."
 if "logged_foods" not in st.session_state:
     st.session_state.logged_foods = []
 
-# API Key
-API_KEY = "AQ.Ab8RN6Kd-R0YXF4G5_CeeFY4bwHxPPlElDFswBX-Okgoe6-8_A"
+# Fetch API key safely from Streamlit Secrets
+if "GEMINI_API_KEY" in st.secrets:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+else:
+    st.error("Missing Gemini API Key! Please add GEMINI_API_KEY to your Streamlit App Secrets.")
+    st.stop()
 
 # Active standard model
 MODEL_NAME = "gemini-2.5-flash"
